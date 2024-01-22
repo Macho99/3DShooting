@@ -7,24 +7,20 @@ using UnityEngine.InputSystem;
 public class PlayerLook : MonoBehaviour
 {
     [SerializeField] Transform camRoot;
+    [SerializeField] Transform character;
     [SerializeField] float sensivility = 10f;
+    [SerializeField] float characterRotationSpeed = 10f;
     [SerializeField] Transform aimPoint;
 
     Vector2 lookInput;
     float yAngle;
     float xAngle;
-    Vector3 headPosition;
-    Vector3 initCamPos;
-    float camDist;
     LayerMask environmentMask;
 
     private void Awake()
     {
         float height = GetComponent<CharacterController>().height;
-        headPosition = new Vector3(0f, height, 0f);
-        initCamPos = camRoot.transform.localPosition;
         environmentMask = LayerMask.GetMask("Environment");
-        camDist = (initCamPos - headPosition).magnitude;
     }
 
     private void OnEnable()
@@ -39,16 +35,37 @@ public class PlayerLook : MonoBehaviour
 
     private void Update()
     {
-        Vector3 lookPoint = Camera.main.transform.position + Camera.main.transform.forward * 10f;
-        lookPoint.y = transform.position.y;
+        bool result = Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward,
+            out RaycastHit hitInfo, 100f, environmentMask);
+
+        Vector3 lookPoint;
+        if(true == result && (hitInfo.point - transform.position).sqrMagnitude > 3f * 3f)
+        {
+            lookPoint = hitInfo.point;
+        }
+        else
+        {
+            lookPoint = Camera.main.transform.position + Camera.main.transform.forward * 5f;
+            lookPoint.y = 0f;
+        }
+
         aimPoint.transform.position = lookPoint;
-        transform.LookAt(aimPoint);
+        Vector3 lookDir = new Vector3(lookPoint.x - transform.position.x, 0f, lookPoint.z - transform.position.z);
+        float lookAngle = Vector3.Angle(lookDir, Vector3.forward);
+
+        if (lookDir.x < 0f)
+            lookAngle = 360f - lookAngle;
+
+        float prevAngle = character.rotation.eulerAngles.y;
+        float nextAngle = Mathf.LerpAngle(prevAngle, lookAngle, Time.deltaTime * characterRotationSpeed);
+
+        character.rotation = Quaternion.Euler(new Vector3(0f, nextAngle, 0f));
+        //character.LookAt(aimPoint);
     }
 
     private void LateUpdate()
     {
         Look();
-        ObstacleCheck();
     }
 
     private void Look()
@@ -58,26 +75,6 @@ public class PlayerLook : MonoBehaviour
         yAngle = Mathf.Clamp(yAngle, -40f, 40f);
 
         camRoot.rotation = Quaternion.Euler(new Vector3(-yAngle, xAngle, 0f));
-    }
-
-    private void ObstacleCheck()
-    {
-        Vector3 origin = transform.position + headPosition;
-        bool result = Physics.Raycast(
-            origin,
-            camRoot.position - origin,
-            out RaycastHit hitInfo,
-            camDist,
-            environmentMask);
-
-        if (true == result)
-        {
-            camRoot.position = hitInfo.point;
-        }
-        else if (false == result)
-        {
-            camRoot.localPosition = initCamPos;
-        }
     }
 
     private void OnLook(InputValue value)

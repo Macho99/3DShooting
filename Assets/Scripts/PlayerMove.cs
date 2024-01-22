@@ -9,6 +9,7 @@ using UnityEngine.InputSystem.HID;
 
 public class PlayerMove : MonoBehaviour
 {
+    [SerializeField] Transform moveOrigin;
     [SerializeField] float moveSpeed = 3f;
     [SerializeField] float jumpForce = 10f;
     [SerializeField] float slideSpeed = 5f;
@@ -69,8 +70,8 @@ public class PlayerMove : MonoBehaviour
         }
 
         Vector3 moveDir = new Vector3();
-        moveDir += moveInput.x * transform.right;
-        moveDir += moveInput.y * transform.forward;
+        moveDir += moveInput.x * moveOrigin.right;
+        moveDir += moveInput.y * moveOrigin.forward;
         moveDir *= moveSpeed;
         moveDir.y = velY;
 
