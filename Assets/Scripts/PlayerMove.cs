@@ -11,12 +11,15 @@ public class PlayerMove : MonoBehaviour
 {
     [SerializeField] Transform moveOrigin;
     [SerializeField] float moveSpeed = 3f;
+    [SerializeField] float runSpeed = 6f;
     [SerializeField] float jumpForce = 10f;
     [SerializeField] float slideSpeed = 5f;
     [SerializeField] float slideAngle = 20f;
 
     public bool IsGround {  get; private set; }
+    public bool IsRun {  get; private set; }
 
+    Animator anim;
     CharacterController controller;
     Vector2 moveInput;
     float velY;
@@ -28,6 +31,7 @@ public class PlayerMove : MonoBehaviour
     {
         velY = 0f;
         controller = GetComponent<CharacterController>();
+        anim = GetComponentInChildren<Animator>();
         environmentMask = LayerMask.GetMask("Environment");
     }
 
@@ -70,9 +74,23 @@ public class PlayerMove : MonoBehaviour
         }
 
         Vector3 moveDir = new Vector3();
-        moveDir += moveInput.x * moveOrigin.right;
-        moveDir += moveInput.y * moveOrigin.forward;
-        moveDir *= moveSpeed;
+        moveDir += moveInput.x * moveSpeed * moveOrigin.right;
+
+        anim.SetFloat("XSpeed", moveInput.x, 0.5f, Time.deltaTime);
+        anim.SetFloat("Speed", moveInput.sqrMagnitude);
+
+        if (IsRun)
+        {
+            anim.SetFloat("YSpeed", moveInput.y * 2f, 0.5f, Time.deltaTime);
+            moveDir += moveInput.y * runSpeed * moveOrigin.forward;
+
+        }
+        else
+        {
+            anim.SetFloat("YSpeed", moveInput.y, 0.5f, Time.deltaTime);
+            moveDir += moveInput.y * moveSpeed * moveOrigin.forward;
+        }
+
         moveDir.y = velY;
 
         controller.Move(moveDir * Time.deltaTime);
@@ -89,6 +107,11 @@ public class PlayerMove : MonoBehaviour
 
         IsGround = false;
         velY = jumpForce;
+    }
+
+    private void OnRun(InputValue value)
+    {
+        IsRun = value.Get<float>() > 0.9f ? true : false;
     }
 
     private void OnDrawGizmos()

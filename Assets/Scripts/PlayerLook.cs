@@ -13,6 +13,7 @@ public class PlayerLook : MonoBehaviour
     [SerializeField] Transform aimPoint;
 
     Vector2 lookInput;
+    float lastLookDistSqr;
     float yAngle;
     float xAngle;
     LayerMask environmentMask;
@@ -42,11 +43,11 @@ public class PlayerLook : MonoBehaviour
         if(true == result && (hitInfo.point - transform.position).sqrMagnitude > 3f * 3f)
         {
             lookPoint = hitInfo.point;
+            lastLookDistSqr = (lookPoint - Camera.main.transform.position).sqrMagnitude;
         }
         else
         {
-            lookPoint = Camera.main.transform.position + Camera.main.transform.forward * 5f;
-            lookPoint.y = 0f;
+            lookPoint = Camera.main.transform.position + Camera.main.transform.forward * Mathf.Sqrt(lastLookDistSqr);
         }
 
         aimPoint.transform.position = lookPoint;
