@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,6 +12,7 @@ public class PlayerLook : MonoBehaviour
     [SerializeField] float sensivility = 10f;
     [SerializeField] float characterRotationSpeed = 10f;
     [SerializeField] Transform aimPoint;
+    [SerializeField] bool follow;
 
     Vector2 lookInput;
     float lastLookDistSqr;
@@ -50,18 +52,19 @@ public class PlayerLook : MonoBehaviour
             lookPoint = Camera.main.transform.position + Camera.main.transform.forward * Mathf.Sqrt(lastLookDistSqr);
         }
 
-        aimPoint.transform.position = lookPoint;
-        Vector3 lookDir = new Vector3(lookPoint.x - transform.position.x, 0f, lookPoint.z - transform.position.z);
-        float lookAngle = Vector3.Angle(lookDir, Vector3.forward);
+        aimPoint.transform.position = Vector3.Lerp(aimPoint.transform.position, lookPoint,
+            characterRotationSpeed * Time.deltaTime);
+        //Vector3 lookDir = new Vector3(lookPoint.x - transform.position.x, 0f, lookPoint.z - transform.position.z);
+        //float lookAngle = Vector3.Angle(lookDir, Vector3.forward);
 
-        if (lookDir.x < 0f)
-            lookAngle = 360f - lookAngle;
+        //if (lookDir.x < 0f)
+        //    lookAngle = 360f - lookAngle;
 
-        float prevAngle = character.rotation.eulerAngles.y;
-        float nextAngle = Mathf.LerpAngle(prevAngle, lookAngle, Time.deltaTime * characterRotationSpeed);
+        //float prevAngle = character.rotation.eulerAngles.y;
+        //float nextAngle = Mathf.LerpAngle(prevAngle, lookAngle, Time.deltaTime * characterRotationSpeed);
 
-        character.rotation = Quaternion.Euler(new Vector3(0f, nextAngle, 0f));
-        //character.LookAt(aimPoint);
+        //character.rotation = Quaternion.Euler(new Vector3(0f, nextAngle, 0f));
+        character.LookAt(new Vector3(lookPoint.x, transform.position.y, lookPoint.z));
     }
 
     private void LateUpdate()
@@ -71,6 +74,7 @@ public class PlayerLook : MonoBehaviour
 
     private void Look()
     {
+        if (follow == false) return;
         xAngle += lookInput.x * Time.deltaTime * sensivility;
         yAngle += lookInput.y * Time.deltaTime * sensivility;
         yAngle = Mathf.Clamp(yAngle, -40f, 40f);
