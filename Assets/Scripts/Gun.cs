@@ -6,6 +6,7 @@ using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 using UnityEngine.InputSystem;
+using Random = UnityEngine.Random;
 
 public class Gun : MonoBehaviour
 {
@@ -13,40 +14,42 @@ public class Gun : MonoBehaviour
     [SerializeField] Transform leftHandHint;
 	[SerializeField] Transform muzzle;
 	[SerializeField] ParticleSystem muzzleParticle;
-	[SerializeField] ParticleSystem hitParticlePrefab;
-	[SerializeField] TrailRenderer trailPrefab;
+	[SerializeField] Bullet bulletPrefab;
     [SerializeField] RuntimeAnimatorController controller;
 
 	[SerializeField] float rpm = 600f;
-	[SerializeField] float trailSpeed = 100f;
+	[SerializeField] float bulletSpeed = 100f;
 	[SerializeField] float damage = 10f;
+	[SerializeField] float baseAccuracy = 0.05f;
+	[SerializeField] float accAmountPerFire = 0.05f;
+	[SerializeField] float accRecoveryDelay = 0.5f;
 
 	private float fireDelay;
 	private Rig rig;
 	private float ikLerpSpeed;
 	private PlayerAction playerAction;
-	private Transform aimPoint;
 	private WeaponHolder weaponHolder;
 	private Light muzzleLight;
-	private LayerMask hitMask;
 	private Coroutine fireCoroutine;
+	private float lastFireTime;
+
+	public float BaseAccuracy { get { return baseAccuracy; } }
 
 	private void Awake()
 	{
 		muzzleLight = GetComponentInChildren<Light>(true);
 		fireDelay = 60 / rpm;
-		hitMask = LayerMask.GetMask("Environment", "Monster");
 	}
 
 	private void Start()
 	{
 		playerAction = FieldSceneFC.Player.GetComponent<PlayerAction>();
-		aimPoint = FieldSceneFC.Player.GetComponent<PlayerLook>().AimPoint;
 		weaponHolder = playerAction.WeaponHolder;
 		rig = playerAction.Rig;
 		ikLerpSpeed = playerAction.IKLerpSpeed;
 	}
 
+	public bool FireInput { get; private set; }
 	public bool IsReload { get; private set; }
 
     public void GetTargetAndHint(out Transform target, out Transform hint)
@@ -90,46 +93,29 @@ public class Gun : MonoBehaviour
 
 	public void Fire(bool val)
 	{
+		FireInput = val;
 		if(val == true) {
-			fireCoroutine = StartCoroutine(CoFire());
-		}
-		else
-		{
-			StopCoroutine(fireCoroutine);
+			_ = StartCoroutine(CoFire());
 		}
 	}
 
 	IEnumerator CoFire()
 	{
-		while (true)
-		{
-			GunFire();
-			yield return new WaitForSeconds(fireDelay);
-		}
-	}
+		while (FireInput == true)
+        {
+			lastFireTime = Time.time;
+            playerAction.SetAnimTrigger("Fire");
+            muzzleParticle.Play();
+            muzzleLight.gameObject.SetActive(true);
+            _ = StartCoroutine(CoLightOff());
 
-	private void GunFire()
-	{
-		playerAction.SetAnimTrigger("Fire");
-		muzzleParticle.Play();
-		muzzleLight.gameObject.SetActive(true);
-		_ = StartCoroutine(CoLightOff());
+            Bullet bullet = LeanPool.Spawn(bulletPrefab, muzzle.position, Quaternion.identity);
+			float accuracy = weaponHolder.Accuracy;
+            bullet.Init((muzzle.forward + Random.insideUnitSphere * accuracy) * bulletSpeed);
+			weaponHolder.AddAccuracy(accAmountPerFire);
+			weaponHolder.SubAccuracy(accAmountPerFire, accRecoveryDelay);
 
-		TrailRenderer trail = LeanPool.Spawn(trailPrefab, muzzle.position, muzzle.rotation);
-		trail.Clear();
-		if(Physics.Raycast(muzzle.position, aimPoint.position - muzzle.position, out RaycastHit hitInfo, 200f, hitMask))
-		{
-			ParticleSystem hitParticle = LeanPool.Spawn(hitParticlePrefab);
-			hitParticle.transform.parent = hitInfo.transform;
-			hitParticle.transform.position = hitInfo.point;
-			hitParticle.transform.rotation = Quaternion.LookRotation(hitInfo.normal);
-			LeanPool.Despawn(hitParticle, 10f);
-
-			_= StartCoroutine(CoTrailMove(trail, hitInfo.point));
-		}
-		else
-		{
-			_= StartCoroutine(CoTrailMove(trail, aimPoint.position));
+            yield return new WaitForSeconds(fireDelay);
 		}
 	}
 
@@ -141,7 +127,7 @@ public class Gun : MonoBehaviour
 		float prevSqrDist = (trail.transform.position - pos).sqrMagnitude;
 		while (true)
 		{
-			trail.transform.Translate(dir * trailSpeed * Time.deltaTime, Space.World);
+			trail.transform.Translate(dir * bulletSpeed * Time.deltaTime, Space.World);
 			float curSqrDist = (trail.transform.position - pos).sqrMagnitude;
 			if(prevSqrDist < curSqrDist)
 			{

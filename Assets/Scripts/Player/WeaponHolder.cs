@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 public class WeaponHolder : MonoBehaviour
@@ -22,13 +23,18 @@ public class WeaponHolder : MonoBehaviour
 	private PlayerAction playerAction;
 	private Gun curGun;
 	private Animator anim;
+	private AccuracyController accuracyController;
 
+	public float Accuracy { get { return accuracyController.Accuracy; } }
 	public bool IsToss { get; private set; }
 
 	private void Awake()
 	{
 		anim = GetComponentInParent<Animator>();
 		Gun slottedGun = GetComponentInChildren<Gun>();
+		accuracyController = new GameObject("AccuracyController").AddComponent<AccuracyController>();
+		accuracyController.transform.parent = transform;
+		accuracyController.transform.localPosition = Vector3.zero;
 
 		ChangeWeapon(slottedGun);
 	}
@@ -84,8 +90,9 @@ public class WeaponHolder : MonoBehaviour
 		curGun.transform.localRotation = prevLocalRot;
 
 		anim.runtimeAnimatorController = curGun.GetAnimController();
-
 		SetTargetAndHint();
+
+		accuracyController.SetAccuracy(curGun.BaseAccuracy);
 	}
 
 	public void Toss()
@@ -123,9 +130,9 @@ public class WeaponHolder : MonoBehaviour
 		{
 			curGun.transform.parent = transform;
 		}
-	}
+    }
 
-	public void Fire(bool val)
+    public void Fire(bool val)
 	{
 		curGun?.Fire(val);
 	}
@@ -133,5 +140,19 @@ public class WeaponHolder : MonoBehaviour
 	public void Reload()
 	{
 		curGun?.Reload();
+    }
+    public void AddAccuracy(float amount)
+    {
+        accuracyController.AddAccuracy(amount);
+    }
+
+    public void SubAccuracy(float amount, float delay)
+    {
+        accuracyController.SubAccuracy(amount, delay);
+    }
+
+	private void OnDisable()
+	{
+		enabled = true;
 	}
 }

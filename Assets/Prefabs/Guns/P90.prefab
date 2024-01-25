@@ -482,12 +482,14 @@ MonoBehaviour:
   leftHandHint: {fileID: 1988739845258414065}
   muzzle: {fileID: 3298146954300563345}
   muzzleParticle: {fileID: 8852213133981708565}
-  hitParticlePrefab: {fileID: 8325351356596334593, guid: 78444915270c2f944b6a99065d3d7bf2, type: 3}
-  trailPrefab: {fileID: 4007289844163470039, guid: 2f9a7207fb8ed2248a5ab22b9c71aa23, type: 3}
+  bulletPrefab: {fileID: 7602861444180445019, guid: ed38bc8d9e4cd494bbe83c05c8a4ba02, type: 3}
   controller: {fileID: 9100000, guid: 603a25b053fb3914cbe68d23059e0027, type: 2}
   rpm: 600
-  trailSpeed: 100
+  bulletSpeed: 900
   damage: 10
+  baseAccuracy: 0.005
+  accAmountPerFire: 0.015
+  accRecoveryDelay: 0.5
 --- !u!1 &8852213133967190129
 GameObject:
   m_ObjectHideFlags: 0
@@ -809,7 +811,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -862,7 +864,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -10264,7 +10266,7 @@ GameObject:
   - component: {fileID: 8852213133981708565}
   - component: {fileID: 8852213133981730997}
   m_Layer: 0
-  m_Name: WFX_MF 4P RIFLE1
+  m_Name: FireParticle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20342,7 +20344,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -20395,7 +20397,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 1
       minScalar: 1
       maxCurve:
