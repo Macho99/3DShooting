@@ -7,13 +7,33 @@ using System;
 public class PlayerAction : MonoBehaviour
 {
     [SerializeField] Rig rig;
+    [SerializeField] MultiAimConstraint rightHandIK;
+    [SerializeField] TwoBoneIKConstraint leftHandIK;
     [SerializeField] float ikLerpSpeed = 10f;
     [SerializeField] WeaponHolder weaponHolder;
 
+    public float RigIKWeight
+    {
+        get { return rig.weight; }
+        set { rig.weight = value; }
+    }
+    public float HandIKWeight
+    {
+        get
+        {
+            return rightHandIK.weight;
+        }
+        set
+        {
+            rightHandIK.weight = value;
+            leftHandIK.weight = value;
+        }
+    }
+
     public bool IsToss { get; private set; }
-    public Rig Rig { get { return rig; } }
     public float IKLerpSpeed { get { return ikLerpSpeed; } }
     public WeaponHolder WeaponHolder { get {  return weaponHolder; } }
+    public Animator Anim { get { return anim; } }
 
     private Animator anim;
 
@@ -43,13 +63,39 @@ public class PlayerAction : MonoBehaviour
         }
     }
 
+    private void OnNum1(InputValue value)
+    {
+        if (value.isPressed == true)
+        {
+            weaponHolder.ChangeGun(1);
+        }
+    }
+
+    private void OnNum2(InputValue value)
+    {
+        if (value.isPressed == true)
+        {
+            weaponHolder.ChangeGun(2);
+        }
+    }
+
     public void SetAnimTrigger(string name)
     {
         anim.SetTrigger(name);
     }
 
+    public void SetAnimBool(string name, bool val)
+    {
+        anim.SetBool(name, val);
+    }
+
     public bool IsAnimWait()
     {
         return anim.GetCurrentAnimatorStateInfo(1).IsName("Wait");
+    }
+
+    public void SetHandWeight(float weight)
+    {
+
     }
 }

@@ -60,18 +60,27 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "ChangeWeapon",
-                    "type": "Button",
-                    "id": "bd53b08b-59e9-405e-85c1-8a56ff2b500a",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
-                },
-                {
                     "name": "Toss",
                     "type": "Button",
                     "id": "0091ce4d-ea54-4870-81f3-3f7aa37a2786",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Num1",
+                    "type": "Button",
+                    "id": "313c7c96-3f2e-494a-8a98-ce841ccfc4b2",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Num2",
+                    "type": "Button",
+                    "id": "3cb88098-89c9-4286-8d7f-4a018c073ec1",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -191,23 +200,34 @@
                 },
                 {
                     "name": "",
-                    "id": "c63ca158-3c29-4977-9788-3da0d13013f7",
-                    "path": "<Keyboard>/tab",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "ChangeWeapon",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "092ac78d-59c6-4a06-8fb6-f6d1292f35c3",
                     "path": "<Keyboard>/t",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Toss",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "72dfe34e-faf1-4a9a-8ea9-d70693ab61f9",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Num1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "23427c7c-809b-46b2-8dd7-97b9e59422c0",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Num2",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

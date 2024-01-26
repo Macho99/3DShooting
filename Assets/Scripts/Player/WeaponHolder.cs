@@ -1,3 +1,4 @@
+using Lean.Pool;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,6 +9,8 @@ using UnityEngine.InputSystem;
 
 public class WeaponHolder : MonoBehaviour
 {
+	public enum State { Idle, Fire, Reload, Change, Toss, Size }
+
 	[SerializeField] Transform leftHand;
 
 	[SerializeField] Transform leftHandHoldTarget;
@@ -15,35 +18,46 @@ public class WeaponHolder : MonoBehaviour
 
 	[SerializeField] Transform subWeaponHoldLeft;
 	[SerializeField] Transform subWeaponHoldRight;
+	[SerializeField] Grenade grenadePrefab;
 
-	[SerializeField] Gun[] guns;
-
-	private Rig rig;
 	private float ikLerpSpeed;
 	private PlayerAction playerAction;
-	private Gun curGun;
 	private Animator anim;
 	private AccuracyController accuracyController;
 
+	private Grenade curGrenade;
+	private Gun[] guns;
+	private Gun curGun;
+	private Gun newGun;
+	private int curGunNum;
+
+	public State CurState { get; set; }
 	public float Accuracy { get { return accuracyController.Accuracy; } }
-	public bool IsToss { get; private set; }
 
 	private void Awake()
 	{
-		anim = GetComponentInParent<Animator>();
-		Gun slottedGun = GetComponentInChildren<Gun>();
+		CurState = State.Idle;
+		guns = GetComponentsInChildren<Gun>();
 		accuracyController = new GameObject("AccuracyController").AddComponent<AccuracyController>();
 		accuracyController.transform.parent = transform;
 		accuracyController.transform.localPosition = Vector3.zero;
 
-		ChangeWeapon(slottedGun);
+		if (guns.Length >= 1)
+		{
+			guns[0].transform.SetParent(subWeaponHoldLeft, false);
+		}
+		if (guns.Length >= 2)
+		{
+			guns[1].transform.SetParent(subWeaponHoldRight, false);
+		}
 	}
 
 	private void Start()
 	{
 		playerAction = GetComponentInParent<PlayerAction>();
-		rig = playerAction.Rig;
+		anim = playerAction.Anim;
 		ikLerpSpeed = playerAction.IKLerpSpeed;
+		ChangeGun(1);
 	}
 
 	private void SetTargetAndHint()
@@ -57,19 +71,27 @@ public class WeaponHolder : MonoBehaviour
 		leftHandHoldHint.rotation = hint.rotation;
 	}
 
-	public void ChangeWeapon(int idx)
+	public void ChangeGun(int num)
 	{
-		if (curGun == guns[0])
-		{
-			ChangeWeapon(guns[1]);
-		}
-		else
-		{
-			ChangeWeapon(guns[0]);
-		}
+		if (guns.Length < num) { return; }
+		if (guns[num - 1] == null ) { return; }
+		if(num == curGunNum) { return; }
+		if (State.Idle != CurState) return;
+
+		curGunNum = num;
+		ChangeGun(guns[num - 1]);
 	}
 
-	public void ChangeWeapon(Gun newGun)
+	public void ChangeGun(Gun newGun)
+	{
+		CurState = State.Change;
+		anim.SetTrigger("ChangeGun");
+		curGun?.GunDisable();
+		playerAction.RigIKWeight = 0f;
+		this.newGun = newGun;
+	}
+
+	public void HandUp()
 	{
 		Vector3 prevLocalPos;
 		Quaternion prevLocalRot;
@@ -77,37 +99,85 @@ public class WeaponHolder : MonoBehaviour
 		{
 			prevLocalPos = curGun.transform.localPosition;
 			prevLocalRot = curGun.transform.localRotation;
-			curGun.transform.parent = subWeaponHoldLeft;
+
+			if (guns[0] == curGun)
+			{
+				curGun.transform.parent = subWeaponHoldLeft;
+			}
+			else
+			{
+				curGun.transform.parent = subWeaponHoldRight;
+			}
+
 			curGun.transform.localPosition = prevLocalPos;
 			curGun.transform.localRotation = prevLocalRot;
 		}
+	}
 
+	public void DrawGun()
+	{
 		curGun = newGun;
-		prevLocalPos = curGun.transform.localPosition;
-		prevLocalRot = curGun.transform.localRotation;
-		curGun.transform.parent = transform;
-		curGun.transform.localPosition = prevLocalPos;
-		curGun.transform.localRotation = prevLocalRot;
 
-		anim.runtimeAnimatorController = curGun.GetAnimController();
-		SetTargetAndHint();
+		if (curGun != null)
+		{
+			curGun.transform.SetParent(transform, false);
+			
+			SetTargetAndHint();
 
-		accuracyController.SetAccuracy(curGun.BaseAccuracy);
+			accuracyController.SetAccuracy(curGun.BaseAccuracy);
+		}
+		else
+		{
+			accuracyController.SetAccuracy(0);
+		}
+
+		newGun = null;
+		_ = StartCoroutine(CoWait());
+	}
+
+	public IEnumerator CoWait()
+	{
+		yield return new WaitUntil(()=>playerAction.IsAnimWait());
+
+		if(curGun != null)
+		{
+			anim.runtimeAnimatorController = curGun.GetAnimController();
+		}
+
+		anim.SetTrigger("Exit");
+
+		while (true)
+		{
+			playerAction.RigIKWeight = Mathf.Lerp(playerAction.RigIKWeight, 1f, Time.deltaTime * ikLerpSpeed);
+			if (playerAction.RigIKWeight > 0.99f)
+			{
+				playerAction.RigIKWeight = 1f;
+				break;
+			}
+			yield return null;
+		}
+		CurState = State.Idle;
 	}
 
 	public void Toss()
 	{
-		if (curGun?.IsReload == true) { return; }
-		if (IsToss == true) { return; }
+		if (CurState != State.Idle) return;
 
+		CurState = State.Toss;
 		anim.SetTrigger("Toss");
-		rig.weight = 0f;
-		IsToss = true;
+		playerAction.HandIKWeight = 0f;
+
 		if(curGun != null)
 		{
 			curGun.transform.parent = leftHand;
 		}
+		curGrenade = LeanPool.Spawn(grenadePrefab, transform.position, transform.rotation, transform);
 		_ = StartCoroutine(CoTossEndCheck());
+	}
+
+	public void TossGrenade()
+	{
+		curGrenade.Init(transform.forward);
 	}
 
 	private IEnumerator CoTossEndCheck()
@@ -115,17 +185,19 @@ public class WeaponHolder : MonoBehaviour
 		yield return new WaitUntil(() => anim.GetCurrentAnimatorStateInfo(1).IsName("Wait"));
 		anim.Play("Empty");
 
-		while (true == IsToss)
+		while (State.Toss == CurState)
 		{
-			rig.weight = Mathf.Lerp(rig.weight, 1f, Time.deltaTime * ikLerpSpeed);
-			if (rig.weight > 0.99f)
+			playerAction.HandIKWeight = Mathf.Lerp(playerAction.HandIKWeight, 1f, Time.deltaTime * ikLerpSpeed);
+			if (playerAction.HandIKWeight > 0.99f)
 			{
-				IsToss = false;
 				break;
 			}
 			yield return null;
 		}
-		rig.weight = 1f;
+
+		CurState = State.Idle;
+		playerAction.HandIKWeight = 1f;
+
 		if (curGun != null)
 		{
 			curGun.transform.parent = transform;
@@ -141,15 +213,21 @@ public class WeaponHolder : MonoBehaviour
 	{
 		curGun?.Reload();
     }
-    public void AddAccuracy(float amount)
+
+    public void AddAccuracy(int amount)
     {
         accuracyController.AddAccuracy(amount);
     }
 
-    public void SubAccuracy(float amount, float delay)
+    public void SubAccuracy(int amount, float delay = 0f)
     {
         accuracyController.SubAccuracy(amount, delay);
     }
+
+	public void SetMoveFactor(float moveFactor)
+	{
+		accuracyController.SetMoveFactor(moveFactor);
+	}
 
 	private void OnDisable()
 	{

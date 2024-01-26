@@ -15,10 +15,30 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] float jumpForce = 10f;
     [SerializeField] float slideSpeed = 5f;
     [SerializeField] float slideAngle = 20f;
+    [SerializeField] int jumpAddAccuracyAmount = 250;
+    [SerializeField] float moveAccuracyRatio = 0.05f;
 
-    public bool IsGround {  get; private set; }
+    private bool isGround;
+    public bool IsGround { 
+        get { return isGround; }
+        private set
+		{
+			if (isGround == false && value == true)
+			{
+				weaponHolder.SubAccuracy(jumpAddAccuracyAmount);
+				anim.SetBool("IsJump", false);
+			}
+			else if (isGround == true && value == false)
+			{
+				weaponHolder.AddAccuracy(jumpAddAccuracyAmount);
+			}
+
+			isGround = value;
+        }
+    }
     public bool IsRun {  get; private set; }
 
+    WeaponHolder weaponHolder;
     Animator anim;
     CharacterController controller;
     Vector2 moveInput;
@@ -33,6 +53,8 @@ public class PlayerMove : MonoBehaviour
         controller = GetComponent<CharacterController>();
         anim = GetComponentInChildren<Animator>();
         environmentMask = LayerMask.GetMask("Environment");
+        weaponHolder = GetComponent<PlayerAction>().WeaponHolder;
+        isGround = true;
     }
 
     private void Update()
@@ -83,13 +105,15 @@ public class PlayerMove : MonoBehaviour
         {
             anim.SetFloat("YSpeed", moveInput.y * 2f, 0.5f, Time.deltaTime);
             moveDir += moveInput.y * runSpeed * moveOrigin.forward;
+			weaponHolder.SetMoveFactor(moveInput.sqrMagnitude * moveAccuracyRatio * runSpeed);
 
-        }
+		}
         else
         {
             anim.SetFloat("YSpeed", moveInput.y, 0.5f, Time.deltaTime);
             moveDir += moveInput.y * moveSpeed * moveOrigin.forward;
-        }
+			weaponHolder.SetMoveFactor(moveInput.sqrMagnitude * moveAccuracyRatio);
+		}
 
         moveDir.y = velY;
 
@@ -107,7 +131,8 @@ public class PlayerMove : MonoBehaviour
 
         IsGround = false;
         velY = jumpForce;
-    }
+		anim.SetBool("IsJump", true);
+	}
 
     private void OnRun(InputValue value)
     {

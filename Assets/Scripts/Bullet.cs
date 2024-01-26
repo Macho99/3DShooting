@@ -30,7 +30,6 @@ public class Bullet : MonoBehaviour
         while (true)
         {
             velocity += gravity * Time.deltaTime;
-            Debug.DrawLine(transform.position, transform.position + velocity * Time.deltaTime);
             if (Physics.Raycast(transform.position, velocity, out RaycastHit hitInfo, velocity.magnitude * Time.deltaTime, hitMask))
             {
                 ParticleSystem hitParticle = LeanPool.Spawn(hitParticlePrefab);

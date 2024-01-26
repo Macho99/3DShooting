@@ -13,6 +13,7 @@ public class CrossHairUI : MonoBehaviour
 
 	WeaponHolder weaponHolder;
 	float curPos;
+
 	private void Start()
 	{
 		weaponHolder = FieldSceneFC.Player.GetComponent<PlayerAction>().WeaponHolder;
@@ -22,7 +23,7 @@ public class CrossHairUI : MonoBehaviour
 	private void Update()
 	{
 		float targetPos = 25 + weaponHolder.Accuracy * ratio;
-		print(targetPos);
+		//print(targetPos);
 		curPos = Mathf.Lerp(curPos, targetPos, Time.deltaTime * lerpSpeed);
 
 		top.anchoredPosition = new Vector2(top.anchoredPosition.x, curPos);

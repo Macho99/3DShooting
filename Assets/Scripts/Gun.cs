@@ -20,12 +20,13 @@ public class Gun : MonoBehaviour
 	[SerializeField] float rpm = 600f;
 	[SerializeField] float bulletSpeed = 100f;
 	[SerializeField] float damage = 10f;
-	[SerializeField] float baseAccuracy = 0.05f;
-	[SerializeField] float accAmountPerFire = 0.05f;
+	[SerializeField] int baseAccuracy = 5;
+	[SerializeField] int accAmountPerFire = 50;
 	[SerializeField] float accRecoveryDelay = 0.5f;
+	[SerializeField] int magazineSize = 30;
 
+	private int curMagazine;
 	private float fireDelay;
-	private Rig rig;
 	private float ikLerpSpeed;
 	private PlayerAction playerAction;
 	private WeaponHolder weaponHolder;
@@ -33,24 +34,23 @@ public class Gun : MonoBehaviour
 	private Coroutine fireCoroutine;
 	private float lastFireTime;
 
-	public float BaseAccuracy { get { return baseAccuracy; } }
+	public int BaseAccuracy { get { return baseAccuracy; } }
+	public bool FireInput { get; private set; }
+
 
 	private void Awake()
 	{
 		muzzleLight = GetComponentInChildren<Light>(true);
 		fireDelay = 60 / rpm;
+		curMagazine = magazineSize;
 	}
 
 	private void Start()
 	{
 		playerAction = FieldSceneFC.Player.GetComponent<PlayerAction>();
 		weaponHolder = playerAction.WeaponHolder;
-		rig = playerAction.Rig;
 		ikLerpSpeed = playerAction.IKLerpSpeed;
 	}
-
-	public bool FireInput { get; private set; }
-	public bool IsReload { get; private set; }
 
     public void GetTargetAndHint(out Transform target, out Transform hint)
     {
@@ -65,12 +65,11 @@ public class Gun : MonoBehaviour
 
 	public void Reload()
 	{
-		if (weaponHolder.IsToss == true) return;
-		if (IsReload == true) { return; }
+		if (weaponHolder.CurState != WeaponHolder.State.Idle) return;
 
+		weaponHolder.CurState = WeaponHolder.State.Reload;
 		playerAction.SetAnimTrigger("Reload");
-		rig.weight = 0f;
-		IsReload = true;
+		playerAction.HandIKWeight = 0f;
 		_ = StartCoroutine(CoReloadEndCheck());
 	}
 
@@ -78,17 +77,18 @@ public class Gun : MonoBehaviour
 	{
 		yield return new WaitUntil(() => playerAction.IsAnimWait());
 		playerAction.SetAnimTrigger("Exit");
-		while (true == IsReload)
+		while (weaponHolder.CurState == WeaponHolder.State.Reload)
 		{
-			rig.weight = Mathf.Lerp(rig.weight, 1f, Time.deltaTime * ikLerpSpeed);
-			if (rig.weight > 0.99f)
+			playerAction.HandIKWeight = Mathf.Lerp(playerAction.HandIKWeight, 1f, Time.deltaTime * ikLerpSpeed);
+			if (playerAction.HandIKWeight > 0.99f)
 			{
-				IsReload = false;
 				break;
 			}
 			yield return null;
 		}
-		rig.weight = 1f;
+		weaponHolder.CurState = WeaponHolder.State.Idle;
+		curMagazine = magazineSize;
+		playerAction.HandIKWeight = 1f;
 	}
 
 	public void Fire(bool val)
@@ -101,10 +101,21 @@ public class Gun : MonoBehaviour
 
 	IEnumerator CoFire()
 	{
+		while (true)
+		{
+			if(weaponHolder.CurState == WeaponHolder.State.Idle) { break; }
+			yield return null;
+		}
+
+		weaponHolder.CurState = WeaponHolder.State.Fire;
 		while (FireInput == true)
         {
+			if (curMagazine <= 0)
+				break;
+
+			playerAction.SetAnimBool("IsFire", true);
+			curMagazine--;
 			lastFireTime = Time.time;
-            playerAction.SetAnimTrigger("Fire");
             muzzleParticle.Play();
             muzzleLight.gameObject.SetActive(true);
             _ = StartCoroutine(CoLightOff());
@@ -117,34 +128,22 @@ public class Gun : MonoBehaviour
 
             yield return new WaitForSeconds(fireDelay);
 		}
-	}
 
-	IEnumerator CoTrailMove(TrailRenderer trail, Vector3 pos)
-	{
-		//print(pos);
-		Vector3 dir = pos - trail.transform.position;
-		dir.Normalize();
-		float prevSqrDist = (trail.transform.position - pos).sqrMagnitude;
-		while (true)
-		{
-			trail.transform.Translate(dir * bulletSpeed * Time.deltaTime, Space.World);
-			float curSqrDist = (trail.transform.position - pos).sqrMagnitude;
-			if(prevSqrDist < curSqrDist)
-			{
-				break;
-			}
-			else
-			{
-				prevSqrDist = curSqrDist;
-			}
-			yield return null;
-		}
-		LeanPool.Despawn(trail);
+		weaponHolder.CurState = WeaponHolder.State.Idle;
+		playerAction.SetAnimBool("IsFire", false);
 	}
 
 	IEnumerator CoLightOff()
 	{
 		yield return new WaitForSeconds(0.02f);
+		muzzleLight.gameObject.SetActive(false);
+	}
+
+	public void GunDisable()
+	{
+		StopAllCoroutines();
+		FireInput = false;
+		playerAction.SetAnimBool("IsFire", false);
 		muzzleLight.gameObject.SetActive(false);
 	}
 }

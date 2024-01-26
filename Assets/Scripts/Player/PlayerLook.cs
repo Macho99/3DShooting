@@ -90,7 +90,7 @@ public class PlayerLook : MonoBehaviour
         if (follow == false) return;
         xAngle += lookInput.x * Time.deltaTime * sensivility;
         yAngle += lookInput.y * Time.deltaTime * sensivility;
-        yAngle = Mathf.Clamp(yAngle, -40f, 40f);
+        yAngle = Mathf.Clamp(yAngle, -50f, 50f);
 
         camRoot.rotation = Quaternion.Euler(new Vector3(-yAngle, xAngle, 0f));
     }

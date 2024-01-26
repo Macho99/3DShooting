@@ -6,14 +6,12 @@ using UnityEngine;
 public class AccuracyController : MonoBehaviour
 {
     private WeaponHolder weaponHolder;
-    private float accuracy;
+    private int accuracyInt;
+    const float accuracyMultiple = 0.001f;
+    private float moveFactor;
     public float Accuracy
     {
-        get { return accuracy; }
-        private set
-        {
-            accuracy = value;
-        }
+        get { return (accuracyInt * accuracyMultiple) + moveFactor; }
     }
 
     private void Start()
@@ -21,23 +19,23 @@ public class AccuracyController : MonoBehaviour
         weaponHolder = GetComponentInParent<WeaponHolder>();
     }
 
-    public void SetAccuracy(float accuracy)
+    public void SetAccuracy(int accuracyInt)
     {
         StopAllCoroutines();
-        Accuracy = accuracy;
+        this.accuracyInt = accuracyInt;
     }
 
-    public void AddAccuracy(float amount)
+    public void AddAccuracy(int amount)
     {
         if (amount < 0f)
         {
             Debug.LogError($"{amount}는 음수입니다");
             return;
         }
-        Accuracy += amount;
+        this.accuracyInt += amount;
     }
 
-    public void SubAccuracy(float amount, float delay = 0f)
+    public void SubAccuracy(int amount, float delay)
     {
         if (amount < 0f)
         {
@@ -47,9 +45,14 @@ public class AccuracyController : MonoBehaviour
         _ = StartCoroutine(CoSubAccuracy(amount, delay));
     }
 
-    private IEnumerator CoSubAccuracy(float amount, float delay)
+    private IEnumerator CoSubAccuracy(int amount, float delay)
     {
         yield return new WaitForSeconds(delay);
-        Accuracy -= amount;
+        this.accuracyInt -= amount;
+    }
+
+    public void SetMoveFactor(float moveFactor)
+    {
+        this.moveFactor = moveFactor;
     }
 }
